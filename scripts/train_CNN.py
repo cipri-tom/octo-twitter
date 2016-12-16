@@ -7,7 +7,7 @@ import datetime
 import helpers
 import tensorflow as tf
 from CNN import TextCNN
-# from tensorflow.contrib import learn
+from tensorflow.contrib import learn
 
 
 # Parameters
@@ -19,13 +19,14 @@ tf.flags.DEFINE_string("GloVe", "../data/embeddings.npy", "GloVe vectors with pr
 tf.flags.DEFINE_integer("embedding_dim", 20, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
 tf.flags.DEFINE_string("filter_sizes", "2,3,4", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 10, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (default: 0.5)")
+tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
+tf.flags.DEFINE_float("learning_rate", 1e-2, "learning rate for Adam optimizer (default: 1e-3)")  # see more here: http://devdocs.io/tensorflow~python/train#AdamOptimizer
+tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
-tf.flags.DEFINE_integer("evaluate_every", 1, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
@@ -48,9 +49,7 @@ x_text, y = helpers.load_data_and_labels()
 
 # Build vocabulary
 d_GloVe = helpers.load_GloVe(FLAGS.GloVe)
-x, initW = helpers.vocab_processor(x_text, d_GloVe, FLAGS.embedding_dim)
-#print("gl:", len(d_GloVe))
-#print("W:", initW.shape)
+d_vocab, x = helpers.vocab_processor(x_text)
 
 # Randomly shuffle data
 np.random.seed(10)
@@ -62,7 +61,7 @@ y_shuffled = y[shuffle_indices]
 # TODO: This is very crude, should use cross-validation
 x_train, x_dev = x_shuffled[:-1000], x_shuffled[-1000:]
 y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
-print("Vocabulary Size: {:d}".format(len(d_GloVe)+1))
+print("Vocabulary Size: {:d}".format(len(d_vocab)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
 
@@ -78,16 +77,15 @@ with tf.Graph().as_default():
         cnn = TextCNN(
             sequence_length=x_train.shape[1],
             num_classes=2,
-            vocab_size=len(d_GloVe)+1,
+            vocab_size=len(d_vocab),
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
-            initW = initW,
             l2_reg_lambda=FLAGS.l2_reg_lambda)
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(1e-3)
+        optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
         grads_and_vars = optimizer.compute_gradients(cnn.loss)
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
@@ -135,12 +133,14 @@ with tf.Graph().as_default():
         (before you start training steps you can assign W to whatever you want)
         based on: https://github.com/dennybritz/cnn-text-classification-tf/issues/17
         """
-        """
+
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
-        if FLAGS.GloVe:                   
+        if FLAGS.GloVe:
+            initW = helpers.init_embedding_W(d_vocab, d_GloVe, FLAGS.embedding_dim)
+            initW.astype(np.float32)                
             sess.run(cnn.W.assign(initW))
-        """
+            
 
         def train_step(x_batch, y_batch):
             """

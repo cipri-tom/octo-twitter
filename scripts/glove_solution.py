@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 from scipy.sparse import *
 import numpy as np
-import pickle
-import random
+import pickle, random, sys
 
 
 def main():
-    print("loading cooccurrence matrix")
-    with open('../data/cooc.pkl', 'rb') as f:
+    cooc_path = '../data/cooc.pkl'
+    if len(sys.args) > 1:
+        cooc_path = sys.args[1]
+
+    print("loading cooccurrence matrix from %s" % cooc_path)
+    with open(cooc_path, 'rb') as f:
         cooc = pickle.load(f)
     print("{} nonzero entries".format(cooc.nnz))
 
@@ -15,14 +18,14 @@ def main():
     print("using nmax =", nmax, ", cooc.max() =", cooc.max())
 
     print("initializing embeddings")
-    embedding_dim = 20
+    embedding_dim = 300
     xs = np.random.normal(size=(cooc.shape[0], embedding_dim))
     ys = np.random.normal(size=(cooc.shape[1], embedding_dim))
 
     eta = 0.001
     alpha = 3 / 4
 
-    epochs = 10
+    epochs = 20
 
     for epoch in range(epochs):
         print("epoch {}".format(epoch))

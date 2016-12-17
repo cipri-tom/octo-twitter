@@ -19,24 +19,24 @@ def tokenize input
 
 			hashtag_body = hashtag[1..-1]
 			if hashtag_body.upcase == hashtag_body
-				result = "<HASHTAG> #{hashtag_body} <ALLCAPS>"
+				result = "<hashtag> #{hashtag_body} <allcaps>"
 			else
-				result = (["<HASHTAG>"] + hashtag_body.split(/(?=[A-Z])/)).join(" ")
+				result = (["<hashtag>"] + hashtag_body.split(/(?=[A-Z])/)).join(" ")
 			end
 			result
 		}
-		.gsub(/#{eyes}#{nose}[)d]+|[)d]+#{nose}#{eyes}/i, "<SMILE>")
-		.gsub(/#{eyes}#{nose}p+/i, "<LOLFACE>")
-		.gsub(/#{eyes}#{nose}\(+|\)+#{nose}#{eyes}/, "<SADFACE>")
-		.gsub(/#{eyes}#{nose}[\/|l*]/, "<NEUTRALFACE>")
-		.gsub(/<3/,"<HEART>")
-		.gsub(/[-+]?[.\d]*[\d]+[:,.\d]*/, "<NUMBER>")
-		.gsub(/([!?.]){2,}/){ # Mark punctuation repetitions (eg. "!!!" => "! <REPEAT>")
-			"#{$~[1]} <REPEAT>"
+		.gsub(/#{eyes}#{nose}[)d]+|[)d]+#{nose}#{eyes}/i, "<smile>")
+		.gsub(/#{eyes}#{nose}p+/i, "<lolface>")
+		.gsub(/#{eyes}#{nose}\(+|\)+#{nose}#{eyes}/, "<sadface>")
+		.gsub(/#{eyes}#{nose}[\/|l*]/, "<neutralface>")
+		.gsub(/<3/,"<heaert>")
+		.gsub(/[-+]?[.\d]*[\d]+[:,.\d]*/, "<number>")
+		.gsub(/([!?.]){2,}/){ # Mark punctuation repetitions (eg. "!!!" => "! <repeat>")
+			"#{$~[1]} <repeat>"
 		}
-		.gsub(/\b(\S*?)(.)\2{2,}\b/){ # Mark elongated words (eg. "wayyyy" => "way <ELONG>")
+		.gsub(/\b(\S*?)(.)\2{2,}\b/){ # Mark elongated words (eg. "wayyyy" => "way <elong>")
 			# TODO: determine if the end letter should be repeated once or twice (use lexicon/dict)
-			$~[1] + $~[2] + " <ELONG>"
+			$~[1] + $~[2] + " <elong>"
 		}
 
 	return input

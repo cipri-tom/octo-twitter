@@ -4,6 +4,7 @@ further helper files for the 2nd miniproject
 """
 
 import numpy as np
+import pickle
 
 def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_data_file="../data/train_neg.txt"):
 	"""
@@ -41,9 +42,14 @@ def vocab_processor(x_text):
 			if word not in d_wordIds:
 				d_wordIds[word] = id_					
 				x[i, k] = id_
+				id_ += 1
 			else:
 				getId_ = d_wordIds.get(word)
-				x[i, k] = getId_
+				x[i, k] = getId_				
+				
+	with open("../data/saved_vocab.pkl", 'wb') as f:
+		pickle.dump(d_wordIds, f, pickle.HIGHEST_PROTOCOL)
+	f.close()
 								
 	return d_wordIds, x
 	
@@ -74,7 +80,7 @@ def initW_embedding_GloVe(d_wordIds, embedding_dim, GloVe="../data/embeddings.np
 
 	assert (d_GloVe.popitem()[1].shape[0] == embedding_dim), "embedding_dim flag and GloVe dim doesn't match!"
 	
-	initW = np.random.uniform(-1, 1,(len(d_wordIds), embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
 	for word, id_ in d_wordIds.items():
 		# check if it's represented as GloVe vector:
 		if word in d_GloVe:
@@ -93,7 +99,7 @@ def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 	
 	f = open(pretrainedGloVe, "r")
 	
-	initW = np.random.uniform(-1, 1,(len(d_wordIds), embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
 	i = word_count
 	for line in f:
 		split_line = line.split()
@@ -124,8 +130,8 @@ def initW_embedding_pretrained_word2vec(d_wordIds, pretrained_word2vec, embeddin
 	
 	from gensim.models import Word2Vec as w2v
 
-	word2vec = w2v.load_word2vec_format(pretrained_word2vec, binary=True)  # -> loads in the whole file ~ 4 GB RAM
-	initW = np.random.uniform(-1, 1,(len(d_wordIds), embedding_dim))  # randomly initialized words (will be loaded from word2vec and the NN will learn...)
+	word2vec = w2v.load_word2vec_format(pretrained_word2vec, binary=True)  # -> loads in the whole file ~ 4 GB RAM (iterating over the file is more than 8GB RAM)
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from word2vec and the NN will learn...)
 	for word, id_ in d_wordIds.items():
 		if word in word2vec:
 			initW[id_, :] = word2vec[word] 

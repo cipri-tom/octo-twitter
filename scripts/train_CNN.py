@@ -18,15 +18,15 @@ from CNN import TextCNN
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
-tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.25d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)") #"../data/glove.twitter.27B.100d.txt"
-tf.flags.DEFINE_integer("embedding_dim", 25, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
+tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.200d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)") #"../data/glove.twitter.27B.100d.txt"
+tf.flags.DEFINE_integer("embedding_dim", 200, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 32, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
-tf.flags.DEFINE_float("learning_rate", 1e-2, "learning rate for Adam optimizer (default: 1e-3)")  # see more here: http://devdocs.io/tensorflow~python/train#AdamOptimizer
+tf.flags.DEFINE_float("learning_rate", 1e-3, "learning rate for Adam optimizer (default: 1e-3)")  # see more here: http://devdocs.io/tensorflow~python/train#AdamOptimizer
 tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 1000, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
@@ -47,7 +47,7 @@ print("")
 # ==================================================
 
 # Load data
-print("Loading data...")
+print("Loading data ...")
 # x_text, y = helpers.load_data_and_labels(positive_data_file="../data/train_pos_full.txt", negative_data_file="../data/train_neg_full.txt")
 x_text, y = helpers.load_data_and_labels()
 
@@ -202,4 +202,4 @@ with tf.Graph().as_default():
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-print("Saved model checkpoint to {}\n".format(path))
+				print("Saved model checkpoint to {}\n".format(path))

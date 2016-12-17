@@ -18,8 +18,23 @@ from CNN import TextCNN
 
 # Model Hyperparameters
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
-tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.25d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)") #"../data/glove.twitter.27B.100d.txt"
+
+# use predefined embeddings
+tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.200d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
+# tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.25d.txt" , "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
+tf.flags.DEFINE_string("pos_text", "../data/train_pos_full.txt", "Path of text with positive examples (default: ../data/train_pos.txt)")
+tf.flags.DEFINE_string("neg_text", "../data/train_pos_full.txt", "Path of text with negative examples (default: ../data/train_neg.txt)")
+tf.flags.DEFINE_string("vocab_path", "../data/vocab_cut.py", "Path to vocabulary extracted from training set (default: ../data/vocab_cut.txt)")
 tf.flags.DEFINE_integer("embedding_dim", 25, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
+
+# use our own embeddings:
+# tf.flags.DEFINE_string("GloVe", "../data/embeddings.npy", "Path to GloVe word embeddings (default ../data/embeddings.npy)")
+# tf.flags.DEFINE_string("pos_text", "../data/train_pos_full.txt", "Path of text with positive examples(default: ../data/train_pos_full.txt)")
+# tf.flags.DEFINE_string("neg_text", "../data/train_neg_full.txt", "Path of text with negative examples(default: ../data/train_neg_full.txt)")
+# tf.flags.DEFINE_string("cut_vocab", "../data/vocab_cut.txt", "Path of vocab for negative embeddings(default: ../data/train_neg_full.txt)")
+# tf.flags.DEFINE_integer("embedding_dim", 20, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
+
+
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 32, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (default: 0.5)")
@@ -43,13 +58,12 @@ for attr, value in sorted(FLAGS.__flags.items()):
 print("")
 
 
-# Data Preparatopn
+# Data Preparation
 # ==================================================
 
 # Load data
 print("Loading data...")
-# x_text, y = helpers.load_data_and_labels(positive_data_file="../data/train_pos_full.txt", negative_data_file="../data/train_neg_full.txt")
-x_text, y = helpers.load_data_and_labels()
+x_text, y = helpers.load_data_and_labels(FLAGS.pos_text, FLAGS.neg_text)
 
 # Build vocabulary
 d_vocab, x = helpers.vocab_processor(x_text)
@@ -67,31 +81,30 @@ y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
 print("Vocabulary Size: {:d}".format(len(d_vocab)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
-
-# Training
-# ==================================================
-
+# Load word vectors
 
 """
 Added by Andras to load in GloVe/word2vec vectors!
 (before you start training steps you can assign W to whatever you want)
 based on: https://github.com/dennybritz/cnn-text-classification-tf/issues/17
 """
-        
-# Don't try to use GloVe and word2vec in the same time        
+
+# Don't try to use GloVe and word2vec in the same time
 if FLAGS.GloVe:
     if FLAGS.GloVe == "../data/embeddings.npy":
         print("Load trained GloVe from {} ...\n".format(FLAGS.GloVe))
-        initW = helpers.initW_embedding_GloVe(d_vocab, FLAGS.embedding_dim)
+        initW = helpers.initW_embedding_GloVe(d_vocab, FLAGS.embedding_dim, FLAGS.GloVe, FLAGS.vocab_cut)
     elif FLAGS.GloVe in ["../data/glove.twitter.27B.25d.txt", "../data/glove.twitter.27B.50.txt", "../data/glove.twitter.27B.100d.txt", "../data/glove.twitter.27B.200d.txt"]:
         print("Load pretrained GloVe from {} ...\n".format(FLAGS.GloVe))
         initW = helpers.initW_embedding_pretrainedGloVe(d_vocab, FLAGS.GloVe, FLAGS.embedding_dim)
 elif FLAGS.word2vec:
     print("Load trained word2vec from {} ...\n".format(FLAGS.word2vec))
     initW = helpers.initW_embedding_pretrained_word2vec(d_vocab, FLAGS.word2vec, FLAGS.embedding_dim)
-            
+
 ##### +code added until here (see functions in the helpers file) #####
 
+# Training
+# ==================================================
 
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
@@ -153,7 +166,7 @@ with tf.Graph().as_default():
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
-           
+
 
         def train_step(x_batch, y_batch):
             """

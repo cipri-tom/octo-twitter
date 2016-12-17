@@ -14,78 +14,77 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 	# Load data from files
 	with open(positive_data_file, "r") as f:
 		positive_examples = f.read().splitlines()
-	f.close()
 	with open(negative_data_file, "r") as f:
 		negative_examples = f.read().splitlines()
-	f.close()
 	x_text = positive_examples + negative_examples
 	# Generate labels
 	positive_labels = [[0,1] for _ in positive_examples]
 	negative_labels = [[1,0] for _ in negative_examples]
 	y = np.concatenate([positive_labels, negative_labels], 0)
-    
+
 	return x_text, y
 
 
-def vocab_processor(x_text):
-	"""
+def vocab_processor(x_text, ):
+	""" Builds vocab dictionary and transforms the sentences to array of word ids
+	Note this is done from scratch every time, but pickled for use in prediction
+
 	Replaces tensorflow.contrib.learn.preprocessing.VocabularyProcessor()
-	with buildig vocab dictionary and transforming the sentences to array of word ids
 	"""
 	max_document_length = max([len(x.split(" ")) for x in x_text])
 
 	id_ = 1  # giving unique ids for words
-	d_wordIds = {}  # storing vectors	
+	d_wordIds = {}  # storing vectors
 	x = np.zeros((len(x_text), max_document_length))
 	for i in range(len(x_text)):  # iterates over tweets
 		for k, word in enumerate(x_text[i].split()):  # iterates over "words" in one tweet
 			if word not in d_wordIds:
-				d_wordIds[word] = id_					
+				d_wordIds[word] = id_
 				x[i, k] = id_
 				id_ += 1
 			else:
 				getId_ = d_wordIds.get(word)
-				x[i, k] = getId_				
-				
+				x[i, k] = getId_
+
 	with open("../data/saved_vocab.pkl", 'wb') as f:
 		pickle.dump(d_wordIds, f, pickle.HIGHEST_PROTOCOL)
-	f.close()
-								
+
 	return d_wordIds, x
-	
+
 
 def load_GloVe(GloVe="../data/embeddings.npy", vocab="../data/vocab_cut.txt"):
 	"""
 	Loads GloVe word vectors to a dictionary (easier to search for words later...)
-	"""	
-	
+	"""
+
 	with open(vocab, "r") as f:
 		words = f.read().splitlines() # only the words represented in GloVe (preprocessing drops some...)
-	f.close()
 	GloVe = np.load(GloVe)
-	
+
 	d_GloVe = {}
 	for i, word in enumerate(words):
 		d_GloVe[word] = GloVe[i,:]
-	
+
 	return d_GloVe
 
 
-def initW_embedding_GloVe(d_wordIds, embedding_dim, GloVe="../data/embeddings.npy", vocab="../data/vocab_cut.txt"):
+def initW_embedding_GloVe(d_wordIds, embedding_dim,
+						  GloVe_path="../data/embeddings.npy",
+						  vocab="../data/vocab_cut.txt"):
 	"""
 	builds weight matrix for embeddig layer (based on GloVe trained on the training tweets)
 	"""
-	
-	d_GloVe = load_Glove()
+
+	d_GloVe = load_Glove(GloVe_path, vocab)
 
 	assert (d_GloVe.popitem()[1].shape[0] == embedding_dim), "embedding_dim flag and GloVe dim doesn't match!"
-	
+
 	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
 	for word, id_ in d_wordIds.items():
 		# check if it's represented as GloVe vector:
 		if word in d_GloVe:
 			initW[id_, :] = d_GloVe.get(word).reshape(1,embedding_dim)
-			
+
 	return initW
 
 
@@ -94,48 +93,47 @@ def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 	builds weight matrix for embeddig layer (based on pretrained GloVe)
 	! 1st download pretrained (on Twitter dataset) vectors: http://nlp.stanford.edu/projects/glove/
 	"""
-	
-	word_count = len(d_wordIds)
-	
+
+	# open and sanity check:
 	f = open(pretrainedGloVe, "r")
-	
+	num_dimensions = f.readline().split() - 1 # first one is the word
+	assert(num_dimensions == embedding_dim)
+	f.seek(0)   # reset file
+
 	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from GloVe and the NN will learn...)
-	i = word_count
+	remaining_words = len(d_wordIds)
 	for line in f:
 		split_line = line.split()
 		word = split_line[0]
-		if i == word_count:  # check dimensions (only once)
-			embedding = [float(val) for val in split_line[1:]]
-			assert (len(embedding) == embedding_dim), "embedding_dim flag and GloVe dim doesn't match!"
 		if word in d_wordIds:
 			id_ = d_wordIds.get(word)
-			embedding = [float(val) for val in split_line[1:]]			
+			embedding = [float(val) for val in split_line[1:]]
 			initW[id_, :] = embedding
-			i -= 1
-		if i == 0:  # don't itrate more if we found all the words present in our dataset
+			remaining_words -= 1
+		if remaining_words == 0:  # stop when we found all the words present in our dataset
 			break
-	
+
 	f.close()
-			
+
 	return initW
-	
+
 
 def initW_embedding_pretrained_word2vec(d_wordIds, pretrained_word2vec, embedding_dim):
 	"""
 	builds weight matrix for embeddig layer (based on pretrained GloVe)
 	! 1st download pretrained vectors: https://code.google.com/archive/p/word2vec/
 	"""
-	
+
 	assert (embedding_dim == 300), "embedding_dim flag and word2vec dim (300) doesn't match!"
-	
+
 	from gensim.models import Word2Vec as w2v
 
 	word2vec = w2v.load_word2vec_format(pretrained_word2vec, binary=True)  # -> loads in the whole file ~ 4 GB RAM (iterating over the file is more than 8GB RAM)
 	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))  # randomly initialized words (will be loaded from word2vec and the NN will learn...)
 	for word, id_ in d_wordIds.items():
 		if word in word2vec:
-			initW[id_, :] = word2vec[word] 
-					
+			initW[id_, :] = word2vec[word]
+
 	return initW
 
 

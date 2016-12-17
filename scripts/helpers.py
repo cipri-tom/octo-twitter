@@ -25,7 +25,7 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 	return x_text, y
 
 
-def vocab_processor(x_text, ):
+def vocab_processor(x_text):
 	""" Builds vocab dictionary and transforms the sentences to array of word ids
 	Note this is done from scratch every time, but pickled for use in prediction
 
@@ -75,7 +75,7 @@ def initW_embedding_GloVe(d_wordIds, embedding_dim,
 	builds weight matrix for embeddig layer (based on GloVe trained on the training tweets)
 	"""
 
-	d_GloVe = load_Glove(GloVe_path, vocab)
+	d_GloVe = load_GloVe(GloVe_path, vocab)
 
 	assert (d_GloVe.popitem()[1].shape[0] == embedding_dim), "embedding_dim flag and GloVe dim doesn't match!"
 

@@ -52,6 +52,7 @@ def vocab_processor(x_text):
 	"""
 
 	max_document_length = max([len(x.split(" ")) for x in x_text])
+	print("Longest tweet: {}, -> zero padding for the others".format(max_document_length))
 
 	id_ = 1  # giving unique ids for words
 	d_wordIds = {}  # storing vectors	
@@ -66,6 +67,7 @@ def vocab_processor(x_text):
 				getId_ = d_wordIds.get(word)
 				x[i, k] = getId_				
 	
+	#print("vocab size before pickle:", len(d_wordIds))
 	import pickle
 	# save vocab (we'll need it during the train)
 	with open("../data/saved_vocab.pkl", 'wb') as f:
@@ -75,18 +77,21 @@ def vocab_processor(x_text):
 	return d_wordIds, x
 	
 
-def map_test_data(x_text, saved_vocab_file="../data/saved_vocab.pkl"):
+def map_test_data(x_text, max_document_length, saved_vocab_file="../data/saved_vocab.pkl"):
 	"""
 	Replaces tensorflow.contrib.learn.preprocessing.VocabularyProcessor()
 	with transforming the sentences to array of word ids (vocab dict is loaded from file...)
 	"""
 	
-	max_document_length = 64  # same as it was during the training!
-	
+	import os
 	import pickle
+	
+	assert (os.path.getsize(saved_vocab_file) != 0), "imported vocab file is empty"
 	with open(saved_vocab_file, "rb") as f:
 		d_wordIds = pickle.load(f)
 	f.close()
+	print("Loaded vocabulary with size: {}".format(len(d_wordIds)))
+	print("Longest tweet: {} -> zero padding for the others\n".format(max_document_length))
 	
 	x = np.zeros((len(x_text), max_document_length))
 	for i in range(len(x_text)):  # iterates over tweets

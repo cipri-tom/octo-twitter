@@ -74,10 +74,10 @@ with graph.as_default():
 
 # convert 0s to -1s
 ids_ = np.where(all_predictions == 0)[0]
-all_predictions[ids_] = -1 
+all_predictions[ids_] = -1
 
 # Save the evaluation to a csv
-predictions_human_readable = np.column_stack((np.array(ids), all_predictions))
+predictions_human_readable = np.column_stack((np.array(ids), all_predictions.astype(np.int32)))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
 print("Saving evaluation to {0}".format(out_path))
 with open(out_path, 'w') as f:

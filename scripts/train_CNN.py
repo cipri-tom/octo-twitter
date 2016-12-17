@@ -1,30 +1,33 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
+"""
+CNN training based on: https://github.com/dennybritz/cnn-text-classification-tf
+slightly modified to load in pretrained word vectors (and to use the dataset of the 2nd miniproject)
+"""
 
-import numpy as np
 import os
 import time
 import datetime
 import helpers
+import numpy as np
 import tensorflow as tf
 from CNN import TextCNN
-from tensorflow.contrib import learn
 
 
 # Parameters
 # ==================================================
 
 # Model Hyperparameters
-#tf.flags.DEFINE_string("word2vec", "../data/GoogleNews-vectors-negative300.bin", "Word2vec file with pre-trained embeddings (default: None)") # 1st download pretrained word2vec vectors: https://code.google.com/archive/p/word2vec/  --> maybe with more RAM ...
-tf.flags.DEFINE_string("GloVe", "../data/embeddings.npy", "GloVe vectors with pre-trained embeddings (default: None)")
-tf.flags.DEFINE_integer("embedding_dim", 20, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
-tf.flags.DEFINE_string("filter_sizes", "2,3,4", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 10, "Number of filters per filter size (default: 128)")
-tf.flags.DEFINE_float("dropout_keep_prob", 0.5, "Dropout keep probability (default: 0.5)")
+tf.flags.DEFINE_string("word2vec", "../data/GoogleNews-vectors-negative300.bin", "Word2vec file with pre-trained embeddings (default: None)")
+tf.flags.DEFINE_string("GloVe", None, "GloVe vectors with pre-trained embeddings (default: None)") #"../data/glove.twitter.27B.100d.txt"
+tf.flags.DEFINE_integer("embedding_dim", 300, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
+tf.flags.DEFINE_string("filter_sizes", "2,3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
+tf.flags.DEFINE_integer("num_filters", 32, "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
 tf.flags.DEFINE_float("learning_rate", 1e-2, "learning rate for Adam optimizer (default: 1e-3)")  # see more here: http://devdocs.io/tensorflow~python/train#AdamOptimizer
-tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
@@ -48,7 +51,6 @@ print("Loading data...")
 x_text, y = helpers.load_data_and_labels()
 
 # Build vocabulary
-d_GloVe = helpers.load_GloVe(FLAGS.GloVe)
 d_vocab, x = helpers.vocab_processor(x_text)
 
 # Randomly shuffle data
@@ -129,17 +131,27 @@ with tf.Graph().as_default():
         sess.run(tf.global_variables_initializer())
         
         """
-        Added by Andras to read load in GloVe vectors!
+        Added by Andras to load in GloVe/word2vec vectors!
         (before you start training steps you can assign W to whatever you want)
         based on: https://github.com/dennybritz/cnn-text-classification-tf/issues/17
         """
-
-        # Initialize all variables
-        sess.run(tf.global_variables_initializer())
+        
+        # Don't try to use GloVe and word2vec in the same time        
         if FLAGS.GloVe:
-            initW = helpers.init_embedding_W(d_vocab, d_GloVe, FLAGS.embedding_dim)
-            initW.astype(np.float32)                
+            if FLAGS.GloVe == "../data/embeddings.npy":
+                print("Load trained GloVe from {} ...\n".format(FLAGS.GloVe))
+                initW = helpers.initW_embedding_GloVe(d_vocab, FLAGS.embedding_dim)
+            elif FLAGS.GloVe in ["../data/glove.twitter.27B.25d.txt", "../data/glove.twitter.27B.50.txt", "../data/glove.twitter.27B.100d.txt", "../data/glove.twitter.27B.200d.txt"]:
+                print("Load pretrained GloVe from {} ...\n".format(FLAGS.GloVe))
+                initW = helpers.initW_embedding_pretrainedGloVe(d_vocab, FLAGS.GloVe, FLAGS.embedding_dim)
+            initW.astype(np.float32)            
             sess.run(cnn.W.assign(initW))
+        elif FLAGS.word2vec:
+            print("Load trained word2vec from {} ...\n".format(FLAGS.word2vec))
+            initW = helpers.initW_embedding_pretrained_word2vec(d_vocab, FLAGS.word2vec, FLAGS.embedding_dim)
+            sess.run(cnn.W.assign(initW))
+            
+        ##### +code added until here (see functions in the helpers file) #####
             
 
         def train_step(x_batch, y_batch):

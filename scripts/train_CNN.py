@@ -134,40 +134,40 @@ with tf.Graph().as_default():
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
         # Keep track of gradient values and sparsity (optional)
-        # grad_summaries = []
-        # for g, v in grads_and_vars:
-        #     if g is not None:
-        #         grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
-        #         sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
-        #         grad_summaries.append(grad_hist_summary)
-        #         grad_summaries.append(sparsity_summary)
-        # grad_summaries_merged = tf.summary.merge(grad_summaries)
+        grad_summaries = []
+        for g, v in grads_and_vars:
+            if g is not None:
+                grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+                sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                grad_summaries.append(grad_hist_summary)
+                grad_summaries.append(sparsity_summary)
+        grad_summaries_merged = tf.summary.merge(grad_summaries)
 
-        # # Output directory for models and summaries
-        # timestamp = str(int(time.time()))
-        # out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
-        # print("Writing to {}\n".format(out_dir))
+        # Output directory for models and summaries
+        timestamp = str(int(time.time()))
+        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+        print("Writing to {}\n".format(out_dir))
 
-        # # Summaries for loss and accuracy
-        # loss_summary = tf.summary.scalar("loss", cnn.loss)
-        # acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+        # Summaries for loss and accuracy
+        loss_summary = tf.summary.scalar("loss", cnn.loss)
+        acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
 
-        # # Train Summaries
-        # train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
-        # train_summary_dir = os.path.join(out_dir, "summaries", "train")
-        # train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+        # Train Summaries
+        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
 
-        # # Dev summaries
-        # dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
-        # dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
-        # dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+        # Dev summaries
+        dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
+        dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+        dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
-        # # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
-        # checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
-        # checkpoint_prefix = os.path.join(checkpoint_dir, "model")
-        # if not os.path.exists(checkpoint_dir):
-        #     os.makedirs(checkpoint_dir)
-        # saver = tf.train.Saver(tf.global_variables())
+        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+        checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        saver = tf.train.Saver(tf.global_variables())
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
@@ -182,8 +182,8 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: FLAGS.dropout_keep_prob
             }
-            _, step, loss, accuracy = sess.run(
-                [train_op, global_step, cnn.loss, cnn.accuracy],
+            _, step, summaries, loss, accuracy = sess.run(
+                [train_op, global_step, train_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
@@ -198,8 +198,8 @@ with tf.Graph().as_default():
               cnn.input_y: y_batch,
               cnn.dropout_keep_prob: 1.0
             }
-            step, loss, accuracy = sess.run(
-                [global_step, cnn.loss, cnn.accuracy],
+            step, summaries, loss, accuracy = sess.run(
+                [global_step, dev_summary_op, cnn.loss, cnn.accuracy],
                 feed_dict)
             time_str = datetime.datetime.now().isoformat()
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
@@ -216,11 +216,10 @@ with tf.Graph().as_default():
             current_step = tf.train.global_step(sess, global_step)
             if current_step % FLAGS.evaluate_every == 0:
                 print("\nEvaluation:")
-                # dev_step(x_dev, y_dev, writer=dev_summary_writer)
-                dev_step(x_dev, y_dev)
+                dev_step(x_dev, y_dev, writer=dev_summary_writer)
                 print("")
             # if current_step % FLAGS.checkpoint_every == 0:
-                # path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-                # print("Saved model checkpoint to {}\n".format(path))
+                path = saver.save(sess, checkpoint_prefix, global_step=current_step)
+                print("Saved model checkpoint to {}\n".format(path))
             if current_step == FLAGS.max_it:
                 break

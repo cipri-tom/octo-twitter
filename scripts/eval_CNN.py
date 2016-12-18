@@ -19,7 +19,7 @@ from CNN import TextCNN
 
 # Eval Parameters
 tf.flags.DEFINE_string("checkpoint_dir", "runs/1482008771/checkpoints", "Checkpoint directory from training run")
-tf.flags.DEFINE_integer("batch_size", 256, "Batch Size (default: 64)")
+tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64 for small size, 128 to the whole dataset)")
 tf.flags.DEFINE_integer("max_document_length", 128, "max doc length during training (default: 64)")  # zero pedding for the shorter ones...
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")

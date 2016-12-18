@@ -5,6 +5,7 @@ further helper files for the 2nd miniproject
 
 import numpy as np
 
+
 def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_data_file="../data/train_neg.txt"):
 	"""
 	Loads data from files, and generates labels.
@@ -20,6 +21,7 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 	positive_labels = [[0,1] for _ in positive_examples]
 	negative_labels = [[1,0] for _ in negative_examples]
 	y = np.concatenate([positive_labels, negative_labels], 0)
+	
 	return x_text, y
 	
 	
@@ -47,6 +49,7 @@ def vocab_processor(x_text):
 	Replaces tensorflow.contrib.learn.preprocessing.VocabularyProcessor()
 	"""
 	max_document_length = max([len(x.split(" ")) for x in x_text])
+	print("Longest tweet: {} -> zero padding for the others".format(max_document_length))
 
 	id_ = 1  # giving unique ids for words
 	d_wordIds = {}  # storing vectors
@@ -60,22 +63,30 @@ def vocab_processor(x_text):
 			else:
 				getId_ = d_wordIds.get(word)
 				x[i, k] = getId_
+						
+	import pickle
+	# save vocab (we'll need it during the train)
 	with open("../data/saved_vocab.pkl", 'wb') as f:
 		pickle.dump(d_wordIds, f, pickle.HIGHEST_PROTOCOL)
+		
 	return d_wordIds, x
 	
 
-def map_test_data(x_text, saved_vocab_file="../data/saved_vocab.pkl"):
+def map_test_data(x_text, max_document_length, saved_vocab_file="../data/saved_vocab.pkl"):
 	"""
 	Replaces tensorflow.contrib.learn.preprocessing.VocabularyProcessor()
 	with transforming the sentences to array of word ids (vocab dict is loaded from file...)
 	"""
 	
-	max_document_length = 64  # same as it was during the training!
-	
+	import os
 	import pickle
+	
+	assert (os.path.getsize(saved_vocab_file) != 0), "imported vocab file is empty"
 	with open(saved_vocab_file, "rb") as f:
 		d_wordIds = pickle.load(f)
+	f.close()
+	print("Loaded vocabulary with size: {}".format(len(d_wordIds)))
+	print("Longest tweet: {} -> zero padding for the others\n".format(max_document_length))
 	
 	x = np.zeros((len(x_text), max_document_length))
 	for i in range(len(x_text)):  # iterates over tweets
@@ -97,6 +108,7 @@ def load_GloVe(GloVe="../data/embeddings.npy", vocab="../data/vocab_cut.txt"):
 	d_GloVe = {}
 	for i, word in enumerate(words):
 		d_GloVe[word] = GloVe[i,:]
+		
 	return d_GloVe
 
 
@@ -110,11 +122,13 @@ def initW_embedding_GloVe(d_wordIds, embedding_dim,
 
 	assert (d_GloVe.popitem()[1].shape[0] == embedding_dim), "embedding_dim flag and GloVe dim doesn't match!"
 	
-	initW = np.zeros((len(d_wordIds)+1, embedding_dim))
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))
+	initW[0, :] = np.zeros((1, embedding_dim))  # wordID = 0 -> zero padded words
 	for word, id_ in d_wordIds.items():
 		# check if it's represented as GloVe vector:
 		if word in d_GloVe:
-			initW[id_, :] = d_GloVe.get(word).reshape(1,embedding_dim)
+			initW[id_, :] = d_GloVe.get(word).reshape(1,embedding_dim)	
+			
 	return initW
 
 
@@ -125,11 +139,12 @@ def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 	"""
 	# open and sanity check:
 	f = open(pretrainedGloVe, "r")
-	num_dimensions = f.readline().split() - 1 # first one is the word
+	num_dimensions = len(f.readline().split()) - 1 # first one is the word
 	assert(num_dimensions == embedding_dim)
-	f.seek(0)   # reset file
+	f.seek(0)  # reset file
 
-	initW = np.zeros((len(d_wordIds)+1, embedding_dim))
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))
+	initW[0, :] = np.zeros((1, embedding_dim))  # wordID = 0 -> zero padded words
 	remaining_words = len(d_wordIds)
 	for line in f:
 		split_line = line.split()
@@ -140,9 +155,9 @@ def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 			initW[id_, :] = embedding
 			remaining_words -= 1
 		if remaining_words == 0:  # stop when we found all the words present in our dataset
-			break
-	
+			break	
 	f.close()
+	
 	return initW
 
 def initW_embedding_pretrained_word2vec(d_wordIds, pretrained_word2vec, embedding_dim):
@@ -156,10 +171,12 @@ def initW_embedding_pretrained_word2vec(d_wordIds, pretrained_word2vec, embeddin
 	from gensim.models import Word2Vec as w2v
 
 	word2vec = w2v.load_word2vec_format(pretrained_word2vec, binary=True)  # -> loads in the whole file ~ 4 GB RAM (iterating over the file is more than 8GB RAM)
-	initW = np.zeros((len(d_wordIds)+1, embedding_dim))
+	initW = np.random.uniform(-1, 1, (len(d_wordIds)+1, embedding_dim))
+	initW[0, :] = np.zeros((1, embedding_dim))  # wordID = 0 -> zero padded words
 	for word, id_ in d_wordIds.items():
 		if word in word2vec:
-			initW[id_, :] = word2vec[word]
+			initW[id_, :] = word2vec[word]	
+			
 	return initW
 
 

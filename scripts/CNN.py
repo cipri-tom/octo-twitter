@@ -44,7 +44,7 @@ class TextCNN(object):
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
             W = tf.Variable(
                 initW.astype(np.float32),
-                trainable=False,
+                #trainable=False,
                 name="W")
             self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)

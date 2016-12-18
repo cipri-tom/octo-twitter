@@ -17,32 +17,33 @@ from CNN import TextCNN
 # ==================================================
 
 # Model Hyperparameters
-tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
-# use predefined embeddings
-# tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.50d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
-# # tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.25d.txt" , "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
-# tf.flags.DEFINE_string("pos_text", "../data/train_pos.txt", "Path of text with positive examples (default: ../data/train_pos.txt)")
-# tf.flags.DEFINE_string("neg_text", "../data/train_neg.txt", "Path of text with negative examples (default: ../data/train_neg.txt)")
-# tf.flags.DEFINE_string("vocab_cut", "../data/vocab_cut.py", "Path to vocabulary extracted from training set (default: ../data/vocab_cut.txt)")
-# tf.flags.DEFINE_integer("embedding_dim", 25, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
 
+# use predefined embeddings
+tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
+tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.200d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
+tf.flags.DEFINE_integer("embedding_dim", 200, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there
+tf.flags.DEFINE_string("pos_text", "../data/train_pos_full.txt", "Path of text with positive examples (default: ../data/train_pos.txt)")
+tf.flags.DEFINE_string("neg_text", "../data/train_neg_full.txt", "Path of text with negative examples (default: ../data/train_neg.txt)")
+"""
 # use our own embeddings:
 tf.flags.DEFINE_string("GloVe", "../data/embeddings.npy", "Path to GloVe word embeddings (default ../data/embeddings.npy)")
 tf.flags.DEFINE_string("pos_text", "../data/train_pos.txt", "Path of text with positive examples(default: ../data/train_pos.txt)")
 tf.flags.DEFINE_string("neg_text", "../data/train_neg.txt", "Path of text with negative examples(default: ../data/train_neg.txt)")
 tf.flags.DEFINE_string("vocab_cut", "../data/vocab_cut.txt", "Path of vocab for negative embeddings(default: ../data/vocab_cut.txt)")
-tf.flags.DEFINE_integer("embedding_dim", 20, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there...
+tf.flags.DEFINE_integer("embedding_dim", 20, "Dimensionality of character embedding (default: 128)")  # if GloVe/word2vec is used this should be read from there
+"""
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
-tf.flags.DEFINE_integer("num_filters", 32, "Number of filters per filter size (default: 128)")
+tf.flags.DEFINE_integer("num_filters", 64, "Number of filters per filter size (default: 128)")
 tf.flags.DEFINE_float("dropout_keep_prob", 0.8, "Dropout keep probability (default: 0.5)")
 tf.flags.DEFINE_float("l2_reg_lambda", 0.0, "L2 regularizaion lambda (default: 0.0)")
 
 # Training parameters
 tf.flags.DEFINE_float("learning_rate", 1e-3, "learning rate for Adam optimizer (default: 1e-3)")  # see more here: http://devdocs.io/tensorflow~python/train#AdamOptimizer
 tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
-tf.flags.DEFINE_integer("num_epochs", 1000, "Number of training epochs (default: 200)")
+tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
 tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("max_it", 5000, "Terminate after this many steps (default: 2000)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -73,11 +74,17 @@ y_shuffled = y[shuffle_indices]
 
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
-x_train, x_dev = x_shuffled[:-1000], x_shuffled[-1000:]
-y_train, y_dev = y_shuffled[:-1000], y_shuffled[-1000:]
+x_train, x_dev = x_shuffled[:-2000], x_shuffled[-2000:]
+y_train, y_dev = y_shuffled[:-2000], y_shuffled[-2000:]
 print("Vocabulary Size: {:d}".format(len(d_vocab)))
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
+import gc
+x_text = []
+y = []
+x_shuffled = []
+y_shuffled = []
+gc.collect()
 
 # Load word vectors
 
@@ -213,4 +220,6 @@ with tf.Graph().as_default():
                 print("")
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess, checkpoint_prefix, global_step=current_step)
-				print("Saved model checkpoint to {}\n".format(path))
+                print("Saved model checkpoint to {}\n".format(path))
+            if current_step == FLAGS.max_it:
+                break

@@ -19,59 +19,36 @@ def log_reading_time(func):
 
 
 @log_reading_time
-def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_data_file="../data/train_neg.txt", cut=None):
+def load_data_and_labels(pos_path="../data/train_pos.txt", neg_path="../data/train_neg.txt", cut=None):
 	"""
 	Loads data from files, deletes repeated tweets and optionally removes long tweets to decrease zero padding and increase variance
 	Returns sentences and labels.
 	"""
-	# Load data from files
-	with open(positive_data_file, "r") as f:
-		positive_examples = f.read().splitlines()
-	with open(negative_data_file, "r") as f:
+	with open(neg_path, "r") as f:
 		negative_examples = f.read().splitlines()
 
-	# delete repeated tweets (and cut long tweets if cut != None)
-	del_count = 0
-	del_long_count = 0
-	prev_tweet = " "
-	positive_tweets = []
-	for tweet in positive_examples:
-		if tweet != prev_tweet and cut == None:
-			positive_tweets.append(tweet)
-			prev_tweet = tweet
-		elif tweet != prev_tweet and cut != None:
-			if len(tweet.split(" ")) <= cut:
-				positive_tweets.append(tweet)
+	# delete repeated tweets and ignore tweets with more than `cut` words
+	num_tweets = {pos_path: 0, neg_path: 0}
+	x_text = []
+	for path in [pos_path, neg_path]:
+		del_count, del_long_count = 0, 0
+		prev_tweet = " "
+		with open(path, "r") as file:
+			for tweet in file:
+				if tweet == prev_tweet:
+					del_count += 1
+					continue
+				if not cut or tweet.count(" ") + 1 <= cut:  # avoid expensive split
+					x_text.append(tweet)
+					num_tweets[path] += 1
+				elif cut:
+					del_long_count += 1
 				prev_tweet = tweet
-			else:
-				del_long_count += 1
-		else:
-			del_count += 1
-	print("pos: #deleted repeated tweets:{}; #deleted long tweets:{}".format(del_count, del_long_count))
-	
-	del_count = 0
-	del_long_count = 0
-	prev_tweet = " "
-	negative_tweets = []
-	for tweet in negative_examples:
-		if tweet != prev_tweet and cut == None:
-			negative_tweets.append(tweet)
-			prev_tweet = tweet
-		elif tweet != prev_tweet and cut != None:
-			if len(tweet.split(" ")) <= cut:
-				negative_tweets.append(tweet)
-				prev_tweet = tweet
-			else:
-				del_long_count += 1
-		else:
-			del_count += 1
-	print("neg: #deleted repeated tweets:{}; #deleted long tweets:{}".format(del_count, del_long_count))
+		print("{}: #deleted repeated tweets:{}; #deleted long tweets:{}".format(path, del_count, del_long_count))
 
-	x_text = positive_tweets + negative_tweets
-	
 	# Generate labels
-	positive_labels = [[0,1] for _ in positive_tweets]
-	negative_labels = [[1,0] for _ in negative_tweets]
+	positive_labels = [[0,1]] * num_tweets[pos_path]
+	negative_labels = [[1,0]] * num_tweets[neg_path]
 	y = np.concatenate([positive_labels, negative_labels], 0)
 
 	return x_text, y
@@ -79,18 +56,14 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 @log_reading_time
 def load_test_data(test_data_file, max_document_length):
 	""" Loads in test data, and splits into indices and tweets """
-	
-	with open(test_data_file, "r") as f:
-		tests = f.read().splitlines()
+	ids, x_text = [], []
+	with open(test_data_file, "r") as file:
+		for line in file:
+			id_, tweet = line.split(',', 1)
+			ids.append(int(id_))
+			assert(tweet.count(" ") + 1 <= max_document_length); "one of your test tweets is longer than allowed!"
+			x_text.append(tweet)
 
-	ids = []
-	x_text = []
-	for id_, tweet in enumerate(tests):
-		tmp = tweet.split(',', 1)
-		ids.append(id_+1)  # tmp[0] was the id before running the ruby preprocessing, but that one is replaced by '<number>'
-		assert(len(tmp[1]) <= max_document_length), "one of your test tweets is longer than allowed!"
-		x_text.append(tmp[1])
-		
 	return ids, x_text
 
 @log_reading_time

@@ -38,10 +38,8 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 	return x_text, y
 
 @log_reading_time
-def load_test_data(test_data_file="../data/test_data.txt"):
-	"""
-	loads in test data, and splits into indices and tweets
-	"""
+def load_test_data(test_data_file):
+	""" loads in test data, and splits into indices and tweets """
 
 	with open(test_data_file, "r") as f:
 		tests = f.read().splitlines()

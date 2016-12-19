@@ -12,7 +12,7 @@ class TextCNN(object):
     A CNN for text classification.
     Uses an embedding layer, followed by a convolutional layer (windowing), max-pooling and softmax layer.
     """
-    
+
     def __init__(
       self, sequence_length, num_classes, vocab_size,
       embedding_size, filter_sizes, num_filters, initW, l2_reg_lambda=0.0):
@@ -24,7 +24,7 @@ class TextCNN(object):
 
         # Keeping track of l2 regularization loss (optional)
         l2_loss = tf.constant(0.0)
-        
+
         """
         # Embedding layer
         with tf.device('/cpu:0'), tf.name_scope("embedding"):
@@ -34,7 +34,7 @@ class TextCNN(object):
             self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
 			self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
         """
-        
+
         """
         Modified by Andras to load in GloVe/word2vec vectors!
         based on: https://github.com/dennybritz/cnn-text-classification-tf/issues/17
@@ -48,7 +48,7 @@ class TextCNN(object):
                 name="W")
             self.embedded_chars = tf.nn.embedding_lookup(W, self.input_x)
             self.embedded_chars_expanded = tf.expand_dims(self.embedded_chars, -1)
-            
+
         ##### modified until here #####
 
         # Create a convolution + maxpool layer for each filter size

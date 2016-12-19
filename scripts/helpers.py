@@ -87,7 +87,7 @@ def load_test_data(test_data_file, max_document_length):
 	x_text = []
 	for id_, tweet in enumerate(tests):
 		tmp = tweet.split(',', 1)
-		ids.append(id_)  # tmp[0] was the id before running the ruby preprocessing, but that one is replaced by '<number>'
+		ids.append(id_+1)  # tmp[0] was the id before running the ruby preprocessing, but that one is replaced by '<number>'
 		assert(len(tmp[1]) <= max_document_length), "one of your test tweets is longer than allowed!"
 		x_text.append(tmp[1])
 		

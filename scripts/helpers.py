@@ -44,13 +44,15 @@ def load_test_data(test_data_file):
 	with open(test_data_file, "r") as f:
 		tests = f.read().splitlines()
 
+	id_ = 1
 	ids = []
 	x_text = []
 	for tweet in tests:
 		tmp = tweet.split(',', 1)
-		ids.append(tmp[0])
+		ids.append(id_)
 		x_text.append(tmp[1])
-
+		id_ += 1
+		
 	return ids, x_text
 
 @log_reading_time

@@ -21,7 +21,7 @@ from CNN import TextCNN
 tf.flags.DEFINE_string("checkpoint_dir", "runs/1482098359/checkpoints", "Checkpoint directory from training run")
 tf.flags.DEFINE_string("test_path", "../data/test_data_preprocess.txt", "Path to the test dataset (no default)")
 tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64 for small size, 128 to the whole dataset)")
-tf.flags.DEFINE_integer("max_document_length", 128, "max doc length during training (default: 64)")  # zero pedding for the shorter ones...
+tf.flags.DEFINE_integer("max_document_length", 60, "max doc length during training (default: 64)")  # zero pedding for the shorter ones...
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -35,8 +35,7 @@ print("")
 
 # Load data
 print("Loading data ...")
-ids, x_text = helpers.load_test_data(FLAGS.test_path)
->>>>>>> 88f8c7b995e62f65f0deef2c0724e5dfdefcf89d
+ids, x_text = helpers.load_test_data(FLAGS.test_path, FLAGS.max_document_length)
 
 # Build vocabulary
 x_test = helpers.map_test_data(x_text, FLAGS.max_document_length)

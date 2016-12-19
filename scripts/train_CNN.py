@@ -24,6 +24,7 @@ tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.100d.txt", "GloVe vec
 tf.flags.DEFINE_integer("embedding_dim", 100, "Dimensionality of character embedding (default: 128)")  # should be read from file ...
 tf.flags.DEFINE_string("pos_text", "../data/train-pos-full-preprocess.txt", "Path of text with positive examples (default: ../data/train_pos.txt)")
 tf.flags.DEFINE_string("neg_text", "../data/train-neg-full-preprocess.txt", "Path of text with negative examples (default: ../data/train_neg.txt)")
+tf.flags.DEFINE_integer("remove_long_tweets", 60, "Cutting long tweets to decrease zero padding (default: None)")
 
 tf.flags.DEFINE_string("filter_sizes", "3,4,5", "Comma-separated filter sizes (default: '3,4,5')")
 tf.flags.DEFINE_integer("num_filters", 64, "Number of filters per filter size (default: 128)")
@@ -55,7 +56,7 @@ print("")
 
 # Load data
 print("Loading data...")
-x_text, y = helpers.load_data_and_labels(FLAGS.pos_text, FLAGS.neg_text)
+x_text, y = helpers.load_data_and_labels(FLAGS.pos_text, FLAGS.neg_text, FLAGS.remove_long_tweets)
 
 # Build vocabulary
 d_vocab, x = helpers.vocab_processor(x_text)

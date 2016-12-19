@@ -19,9 +19,9 @@ def log_reading_time(func):
 
 
 @log_reading_time
-def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_data_file="../data/train_neg.txt"):
+def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_data_file="../data/train_neg.txt", cut=None):
 	"""
-	Loads data from files, and generates labels.
+	Loads data from files, deletes repeated tweets and optionally removes long tweets to decrease zero padding and increase variance
 	Returns sentences and labels.
 	"""
 	# Load data from files
@@ -29,29 +29,67 @@ def load_data_and_labels(positive_data_file="../data/train_pos.txt", negative_da
 		positive_examples = f.read().splitlines()
 	with open(negative_data_file, "r") as f:
 		negative_examples = f.read().splitlines()
-	x_text = positive_examples + negative_examples
+
+	# delete repeated tweets (and cut long tweets if cut != None)
+	del_count = 0
+	del_long_count = 0
+	prev_tweet = " "
+	positive_tweets = []
+	for tweet in positive_examples:
+		if tweet != prev_tweet and cut == None:
+			positive_tweets.append(tweet)
+			prev_tweet = tweet
+		elif tweet != prev_tweet and cut != None:
+			if len(tweet.split(" ")) <= cut:
+				positive_tweets.append(tweet)
+				prev_tweet = tweet
+			else:
+				del_long_count += 1
+		else:
+			del_count += 1
+	print("pos: #deleted repeated tweets:{}; #deleted long tweets:{}".format(del_count, del_long_count))
+	
+	del_count = 0
+	del_long_count = 0
+	prev_tweet = " "
+	negative_tweets = []
+	for tweet in negative_examples:
+		if tweet != prev_tweet and cut == None:
+			negative_tweets.append(tweet)
+			prev_tweet = tweet
+		elif tweet != prev_tweet and cut != None:
+			if len(tweet.split(" ")) <= cut:
+				negative_tweets.append(tweet)
+				prev_tweet = tweet
+			else:
+				del_long_count += 1
+		else:
+			del_count += 1
+	print("neg: #deleted repeated tweets:{}; #deleted long tweets:{}".format(del_count, del_long_count))
+
+	x_text = positive_tweets + negative_tweets
+	
 	# Generate labels
-	positive_labels = [[0,1] for _ in positive_examples]
-	negative_labels = [[1,0] for _ in negative_examples]
+	positive_labels = [[0,1] for _ in positive_tweets]
+	negative_labels = [[1,0] for _ in negative_tweets]
 	y = np.concatenate([positive_labels, negative_labels], 0)
 
 	return x_text, y
 
 @log_reading_time
-def load_test_data(test_data_file):
-	""" loads in test data, and splits into indices and tweets """
-
+def load_test_data(test_data_file, max_document_length):
+	""" Loads in test data, and splits into indices and tweets """
+	
 	with open(test_data_file, "r") as f:
 		tests = f.read().splitlines()
 
-	id_ = 1
 	ids = []
 	x_text = []
-	for tweet in tests:
+	for id_, tweet in enumerate(tests):
 		tmp = tweet.split(',', 1)
-		ids.append(id_)
+		ids.append(id_)  # tmp[0] was the id before running the ruby preprocessing, but that one is replaced by '<number>'
+		assert(len(tmp[1]) <= max_document_length), "one of your test tweets is longer than allowed!"
 		x_text.append(tmp[1])
-		id_ += 1
 		
 	return ids, x_text
 
@@ -133,7 +171,7 @@ def initW_embedding_GloVe(d_wordIds, embedding_dim,
 						  GloVe_path="../data/embeddings.npy",
 						  vocab="../data/vocab_cut.txt"):
 	"""
-	builds weight matrix for embeddig layer (based on GloVe trained on the training tweets)
+	Builds weight matrix for embeddig layer (based on GloVe trained on the training tweets)
 	"""
 	d_GloVe = load_GloVe(GloVe_path, vocab)
 
@@ -152,7 +190,7 @@ def initW_embedding_GloVe(d_wordIds, embedding_dim,
 @log_reading_time
 def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 	"""
-	builds weight matrix for embeddig layer (based on pretrained GloVe)
+	Builds weight matrix for embeddig layer (based on pretrained GloVe)
 	! 1st download pretrained (on Twitter dataset) vectors: http://nlp.stanford.edu/projects/glove/
 	"""
 	# open and sanity check:
@@ -181,7 +219,7 @@ def initW_embedding_pretrainedGloVe(d_wordIds, pretrainedGloVe, embedding_dim):
 @log_reading_time
 def initW_embedding_pretrained_word2vec(d_wordIds, pretrained_word2vec, embedding_dim):
 	"""
-	builds weight matrix for embeddig layer (based on pretrained GloVe)
+	Builds weight matrix for embeddig layer (based on pretrained GloVe)
 	! 1st download pretrained vectors: https://code.google.com/archive/p/word2vec/
 	"""
 

@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 """
 This script should reproduce our best submission on Kaggle, using a CNN architecture for twitter sentiment analysis
-Checkpoint saved by tensorflow are (at least) 1.6 GB, so we didn't attach it, but one can download it from: https://drive.google.com/open?id=0B089tpx89mdXZ3NuU0x4RXBMeTA (please put the downloaded checkpoint folder to the data/1482182487 folder)
-The script is based on: https://github.com/dennybritz/cnn-text-classification-tf, slightly modified ti use the dataset of the 2nd miniproject
+Checkpoint saved by tensorflow are (at least) 1.6 GB, so we didn't attach it, but one can download it from: goo.gl/x526hG
+(please put the downloaded checkpoint folder to the data/1482182487/ folder)
+The script is based on: https://github.com/dennybritz/cnn-text-classification-tf, slightly modified to use the dataset of the 2nd miniproject
 Authors: András Ecker, Valentin Vasiliu, Ciprian I. Tomoiagă
 """
 

@@ -20,8 +20,8 @@ from CNN import TextCNN
 
 # use predefined embeddings
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
-tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.100d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
-tf.flags.DEFINE_integer("embedding_dim", 100, "Dimensionality of character embedding (default: 128)")  # should be read from file ...
+tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.200d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
+tf.flags.DEFINE_integer("embedding_dim", 200, "Dimensionality of character embedding (default: 128)")  # should be filled from file ...
 tf.flags.DEFINE_string("pos_text", "../data/train-pos-full-preprocess.txt", "Path of text with positive examples (default: ../data/train_pos.txt)")
 tf.flags.DEFINE_string("neg_text", "../data/train-neg-full-preprocess.txt", "Path of text with negative examples (default: ../data/train_neg.txt)")
 tf.flags.DEFINE_integer("remove_long_tweets", 60, "Cutting long tweets to decrease zero padding (default: None)")
@@ -36,9 +36,9 @@ tf.flags.DEFINE_float("learning_rate", 1e-3, "learning rate for Adam optimizer (
 tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 200, "Number of training epochs (default: 200)")
 
-tf.flags.DEFINE_integer("evaluate_every", 100, "Evaluate model on dev set after this many steps (default: 100)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
-tf.flags.DEFINE_integer("max_it", 10000, "Terminate after this many steps (default: 2000)")
+tf.flags.DEFINE_integer("evaluate_every", 1, "Evaluate model on dev set after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 1000, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("max_it", 500, "Terminate after this many steps (default: 2000)")
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -184,10 +184,11 @@ with tf.Graph().as_default():
             print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
             # train_summary_writer.add_summary(summaries, step)
 
+
         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
-            """
+            """         
             feed_dict = {
               cnn.input_x: x_batch,
               cnn.input_y: y_batch,
@@ -203,7 +204,8 @@ with tf.Graph().as_default():
 
         # Generate batches
         batches = helpers.batch_iter(
-            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs) 
+            
         # Training loop. For each batch...
         for batch in batches:
             x_batch, y_batch = zip(*batch)

@@ -63,7 +63,7 @@ def load_test_data(test_data_file, max_document_length):
 			ids.append(int(id_))
 			assert(tweet.count(" ") + 1 <= max_document_length); "one of your test tweets is longer than allowed!"
 			x_text.append(tweet)
-			
+
 	return ids, x_text
 
 @log_reading_time
@@ -110,7 +110,7 @@ def map_test_data(x_text, max_document_length, saved_vocab_file="../data/saved_v
 	assert (os.path.getsize(saved_vocab_file) != 0), "imported vocab file is empty"
 	with open(saved_vocab_file, "rb") as f:
 		d_wordIds = pickle.load(f)
-	f.close()
+
 	print("Loaded vocabulary with size: {}".format(len(d_wordIds)))
 	print("Longest tweet: {} -> zero padding for the others\n".format(max_document_length))
 

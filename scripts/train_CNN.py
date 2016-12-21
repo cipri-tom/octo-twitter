@@ -15,10 +15,12 @@ from CNN import TextCNN
 
 # Parameters
 # ==================================================
+# These are hard coded because it is better to see them in context and ensures
+# consistency for a given run
 
 # Model Hyperparameters
 
-# use predefined embeddings
+# use predefined embeddings -- Change path for word2vec or GloVe
 tf.flags.DEFINE_string("word2vec", None, "Word2vec file with pre-trained embeddings (default: ../data/GoogleNews-vectors-negative300.bin)")
 tf.flags.DEFINE_string("GloVe", "../data/glove.twitter.27B.200d.txt", "GloVe vectors with pre-trained embeddings (default: ../data/glove.twitter.27B.200d.txt)")
 tf.flags.DEFINE_integer("embedding_dim", 200, "Dimensionality of character embedding (default: 128)")  # should be filled from file ...
@@ -188,7 +190,7 @@ with tf.Graph().as_default():
         def dev_step(x_batch, y_batch, writer=None):
             """
             Evaluates model on a dev set
-            """         
+            """
             feed_dict = {
               cnn.input_x: x_batch,
               cnn.input_y: y_batch,
@@ -204,8 +206,8 @@ with tf.Graph().as_default():
 
         # Generate batches
         batches = helpers.batch_iter(
-            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs) 
-            
+            list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+
         # Training loop. For each batch...
         for batch in batches:
             x_batch, y_batch = zip(*batch)

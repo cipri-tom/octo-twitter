@@ -1,7 +1,11 @@
 #! /usr/bin/env python
 """
-predicting with trained CNN based on: https://github.com/dennybritz/cnn-text-classification-tf
-slightly modified to use the dataset of the 2nd miniproject
+Evaluates a model indicated by the following parameters
+
+Our code is an adaptation from the open source (Apache license) software at
+https://github.com/dennybritz/cnn-text-classification-tf
+
+Authors: András Ecker, Valentin Vasiliu, Ciprian I. Tomoiagă
 """
 
 import os
@@ -13,12 +17,15 @@ from CNN import TextCNN
 
 # Parameters
 # ==================================================
+# These are hard coded because it is better to see them in context and ensures
+# consistency for a given run, similarly to the train module
 
 # Eval Parameters
-tf.flags.DEFINE_string("checkpoint_dir", "runs/1482182487/checkpoints", "Checkpoint directory from training run")
+tf.flags.DEFINE_string("checkpoint_dir", "../data/1482182487/checkpoints", "Checkpoint directory from training run")
 tf.flags.DEFINE_string("test_path", "../data/test_data_preprocess.txt", "Path to the test dataset (no default)")
 tf.flags.DEFINE_integer("batch_size", 128, "Batch Size (default: 128)")
 tf.flags.DEFINE_integer("max_document_length", 60, "max doc length during training (default: 60)")  # use the one you setted in train_CNN.py
+
 # Misc Parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
@@ -35,7 +42,8 @@ print("Loading data ...")
 ids, x_text = helpers.load_test_data(FLAGS.test_path, FLAGS.max_document_length)
 
 # Build vocabulary
-x_test = helpers.map_test_data(x_text, FLAGS.max_document_length)
+x_test = helpers.map_test_data(x_text, FLAGS.max_document_length,
+                               saved_vocab_file="../data/submission_vocab.pkl")
 
 print("Evaluating {} inputs ...\n".format(len(ids)))
 
@@ -78,10 +86,15 @@ all_predictions[ids_] = -1
 # Save the evaluation to a csv
 predictions_human_readable = np.column_stack((np.array(ids), all_predictions.astype(np.int32)))
 out_path = os.path.join(FLAGS.checkpoint_dir, "..", "prediction.csv")
+out_path = os.path.abspath(out_path)
 print("Saving evaluation to {0}".format(out_path))
-with open(out_path, 'w') as f:
+with open(out_path, 'w', newline='') as f:
     fieldnames = ['Id', 'Prediction']
     writer = csv.DictWriter(f, delimiter=",", fieldnames=fieldnames)
     writer.writeheader()
     csv.writer(f).writerows(predictions_human_readable)
+
+# finish gracefully : https://github.com/tensorflow/tensorflow/issues/3388
+import gc
+gc.collect()
 
